@@ -7,5 +7,5 @@ Multi-shot Temporal Event Localization: a Benchmark<br>
 
 MUSES is a large-scale video dataset, designed to spur researches on a new task called multi-shot temporal event localization. Refer to the [paper](https://arxiv.org/abs/2012.09434) and the [project page](http://songbai.site/muses/) for more information.
 
-The repository will be updated soon.
+The code will be released in May 2021.
 
