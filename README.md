@@ -20,13 +20,13 @@ MUSES is a large-scale video dataset, designed to spur researches on a new task 
 
 ----
 # Update
-[2021.6.19] Code for THUMOS14 is released.
-
+[2021.6.19] Code for THUMOS14 and the annotation file of MUSES is released. Please find the annotation file on our [project page](http://songbai.site/muses/).
 
 # Usage Guide
 
 ## Prerequisites
 [[back to top](#MUSES)]
+
 The code is reimplemented in PyTorch. The following environment is required.
 - Python 3
 - [PyTorch >= 1.3.0][pytorch] 
@@ -45,10 +45,12 @@ python setup.py develop
 After installing all dependecies, run `python demo.py` for a quick test.
 
 ## Data Preparation
+[[back to top](#MUSES)]
+
 We support experimenting with THUMOS14. The support for MUSES will come soon. To run the experiments, you can directly download the pre-extracted features.
 
 - THUMOS14: The features are provided by PGCN. You can download them from [[OneDrive]](https://husteducn-my.sharepoint.com/:u:/g/personal/liuxl_hust_edu_cn/EQ-5j4yQL0pNmgV4N0UPiokBFE3BX2TWEAzUxqNaAp2xEw?e=2SkUdn) (2.4G).
-Extract the archive and put the features in `data` folder. We expect the following structure in `data/thumos14` folder.
+Extract the archive and put the features in `data/thumos14` folder. We expect the following structure in this folder.
 ```text
 - data
   - thumos14
@@ -58,10 +60,14 @@ Extract the archive and put the features in `data` folder. We expect the followi
 
 
 ## Reference Models
+[[back to top](#MUSES)]
+
 Download models trained by us and put them in the `reference_models` folder:
-- THUMOS14: [[OneDrive]](https://husteducn-my.sharepoint.com/:f:/g/personal/liuxl_hust_edu_cn/Ev6jpwGyKklHgCKwRwNEpaEB7FsRE_CmS-0sXkdaNgPPcw?e=b0BnpC)
+- THUMOS14: Models trained with RGB and Flow. [[OneDrive]](https://husteducn-my.sharepoint.com/:f:/g/personal/liuxl_hust_edu_cn/Ev6jpwGyKklHgCKwRwNEpaEB7FsRE_CmS-0sXkdaNgPPcw?e=b0BnpC)
 
 ## Testing Trained Models
+[[back to top](#MUSES)]
+
 You can test the reference models and fuse different modalities on THUMOS14 by running a single script
 ```
 bash scripts/test_reference_models.sh
@@ -74,10 +80,10 @@ Using these models, you should get the following performance
 |mAP@0.5|53.9|46.4|56.9|
 
 The results with RGB+Flow at all IoU thresholds
-
+```
 0.10   | 0.20   | 0.30   | 0.40   | 0.50   | 0.60   | 0.70   | 0.80   | 0.90   | Average |
-
 0.7377 | 0.7219 | 0.6893 | 0.6399 | 0.5685 | 0.4625 | 0.3097 | 0.1334 | 0.0192 | 0.4758  
+```
 
 The testing process consists of two steps, detailed below.
 
@@ -98,6 +104,8 @@ python eval.py DATASET RESULT_PICKLE_RGB RESULT_PICKLE_FLOW --cfg CFG_PATH --sco
 ```
 
 ## Training
+[[back to top](#MUSES)]
+
 Train your own models with the following command
 ```
 python train_net.py  DATASET  --cfg CFG_PATH --snapshot_pref SNAPSHOT_PREF --epochs 20
@@ -110,6 +118,8 @@ bash scripts/do_all.sh
 ```
 
 # Contact
+[[back to top](#MUSES)]
+
 For questions and suggestions, file an issue or contact Xiaolong Liu at "liuxl at hust dot edu dot cn".
 
 
