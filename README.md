@@ -77,7 +77,7 @@ Using these models, you should get the following performance
 
 ||RGB|Flow|RGB+Flow|
 |:-:|:-:|:-:|:-:|
-|mAP@0.5|53.9|46.4|56.9|
+|mAP@0.5|46.4|53.9|56.9|
 
 The results with RGB+Flow at all IoU thresholds
 ```
