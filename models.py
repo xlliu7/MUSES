@@ -382,22 +382,3 @@ if __name__ == '__main__':
     )
 
     model = TwoStageDetector(model_configs, 1024)
-
-    full_ckpt = torch.load('outputs/snapshots/th14_rgb_twostage_mst2d_ks3_9_3x3-6_3x3-9_freelength_bs1_iter32/PGCN_thumos14_epoch_19_checkpoint.pth.tar')
-    ckpt = full_ckpt['state_dict']
-    keys = list(ckpt.keys())
-    print(keys)
-    for k in keys:
-        if k.startswith('module.roi_head.Act') or k.startswith('module.roi_head.Comp'):
-            new_k = k.replace('GCN', 'MLP')
-            print(new_k)
-            ckpt[new_k] = ckpt[k].clone()
-            del ckpt[k]
-    print(ckpt.keys())
-    torch.save(full_ckpt, 'reference_models/th14_rgb.pth.tar')
-    pdb.set_trace()
-    ckpt = {'.'.join(k.split('.')[1:]): v for k, v in list(ckpt.items())}
-
-    print(model.state_dict().keys())
-    model.load_state_dict(ckpt)
-    pdb.set_trace()

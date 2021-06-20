@@ -1,15 +1,20 @@
 # MUSES
 This repo holds the code and the models for MUSES, introduced in the paper:<br>
 Multi-shot Temporal Event Localization: a Benchmark<br>
-[Xiaolong Liu](https://github.com/xlliu7), [Yao Hu](https://scholar.google.com/citations?user=LIu7k7wAAAAJ), [Song Bai](http://songbai.site), Fei Ding, [Xiang Bai](http://122.205.5.5:8071/~xbai/), [Philip H.S. Torr](http://www.robots.ox.ac.uk/~phst/)
+[Xiaolong Liu](https://github.com/xlliu7), [Yao Hu](https://scholar.google.com/citations?user=LIu7k7wAAAAJ), [Song Bai](http://songbai.site), Fei Ding, [Xiang Bai](http://122.205.5.5:8071/~xbai/), [Philip H.S. Torr](http://www.robots.ox.ac.uk/~phst/)<br>
+CVPR 2021.
 
 
-MUSES is a large-scale video dataset, designed to spur researches on a new task called multi-shot temporal event localization. Refer to the [paper](https://arxiv.org/abs/2012.09434) and the [project page](http://songbai.site/muses/) for more information.
+MUSES is a large-scale video dataset, designed to spur researches on a new task called multi-shot temporal event localization. We present a baseline aproach that achieves SOTA peformance on MUSES. It also reports an mAP of 56.9% on THUMOS14 at IoU=0.5. 
 
+Refer to the [paper](https://arxiv.org/abs/2012.09434) and the [project page](http://songbai.site/muses/) for more information.
+
+# Updates
+[2021.6.19] Code and the annotation file of MUSES is released. Please find the annotation file on our [project page](http://songbai.site/muses/).
 
 # Contents
 ----
-* [Update](#update)
+* [Updates](#updates)
 * [Usage Guide](#usage-guide)
    * [Prerequisites](#prerequisites)
    * [Data Preparation](#data-preparation)
@@ -19,15 +24,14 @@ MUSES is a large-scale video dataset, designed to spur researches on a new task 
 * [Contact](#contact)
 
 ----
-# Update
-[2021.6.19] Code for THUMOS14 and the annotation file of MUSES is released. Please find the annotation file on our [project page](http://songbai.site/muses/).
+
 
 # Usage Guide
 
 ## Prerequisites
 [[back to top](#MUSES)]
 
-The code is reimplemented in PyTorch. The following environment is required.
+The code is based on PyTorch. The following environment is required.
 - Python 3
 - [PyTorch >= 1.3.0][pytorch] 
 - CUDA >= 9.2
@@ -77,7 +81,7 @@ Using these models, you should get the following performance
 
 ||RGB|Flow|RGB+Flow|
 |:-:|:-:|:-:|:-:|
-|mAP@0.5|46.4|53.9|56.9|
+|mAP@IoU=0.5|46.4|53.9|56.9|
 
 The results with RGB+Flow at all IoU thresholds
 ```
@@ -98,7 +102,7 @@ Here, DATASET should be `thumos14` or `muses`. RESULT_PICKLE is the path where w
 python eval.py DATASET RESULT_PICKLE --cfg CFG_PATH
 ```
 
-3. (optional) On THUMOS14, we need to fuse the detection scores with RGB and Flow modality. This can be achieved by running
+On THUMOS14, we need to fuse the detection scores with RGB and Flow modality. This can be done by running
 ```
 python eval.py DATASET RESULT_PICKLE_RGB RESULT_PICKLE_FLOW --cfg CFG_PATH --score_weights 1 1.2 --cfg CFG_PATH_RGB
 ```
@@ -112,10 +116,26 @@ python train_net.py  DATASET  --cfg CFG_PATH --snapshot_pref SNAPSHOT_PREF --epo
 ```
 SNAPSHOT_PREF: the path to save trained models and logs, e.g `outputs/snapshpts/thumos14_rgb/`. 
 
-We provide a script that finishes all steps on THUMOS14, including training and testing and two-stream fusion. Run
+We provide a script that finishes all steps on THUMOS14, including training, testing, and two-stream fusion. Run
 ```
 bash scripts/do_all.sh
 ```
+
+# Citation
+Please cite the following paper if you feel MUSES useful to your research
+```
+@InProceedings{Liu_2021_CVPR,
+    author    = {Liu, Xiaolong and Hu, Yao and Bai, Song and Ding, Fei and Bai, Xiang and Torr, Philip H. S.},
+    title     = {Multi-Shot Temporal Event Localization: A Benchmark},
+    booktitle = {Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
+    month     = {June},
+    year      = {2021},
+    pages     = {12596-12606}
+}
+```
+
+# Related Projects
+- [TadTR](https://github.com/xlliu7/TadTR): Temporal action detectioon (localization) with Transformer.
 
 # Contact
 [[back to top](#MUSES)]
