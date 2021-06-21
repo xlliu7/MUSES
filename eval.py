@@ -17,7 +17,6 @@ import pickle
 
 from anet_toolkit.Evaluation.eval_detection import \
     compute_average_precision_detection
-from lib.utils import infer_epoch
 
 from ops.utils import get_configs, softmax
 
@@ -60,8 +59,6 @@ sys.stdout.flush()
 score_pickle_list = []
 for pc in args.detection_pickles:
     score_pickle_list.append(pickle.load(open(pc, 'rb')))
-
-epoch_ind = infer_epoch(args.detection_pickles[0])
 
 if args.score_weights:
     weights = np.array(args.score_weights) / sum(args.score_weights)
@@ -326,7 +323,7 @@ per_cls_map = ap_values.mean(axis=1)
 # for 
 display_title = "Detection Performance on {}".format(args.dataset)
 
-display_data = [["IoU thresh"], ["mAPepoch{}".format(epoch_ind)]]
+display_data = [["IoU thresh"], ["mAP"]]
 
 for i in range(len(iou_range)):
     display_data[0].append("{:.02f}".format(iou_range[i]))

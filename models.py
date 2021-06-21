@@ -8,7 +8,7 @@ from torch.nn.modules.utils import _pair, _single
 import numpy as np
 import torch.nn.functional as F
 
-from ops import RoIPool
+from ops.roi_pool import RoIPool
 from ops.dcn import deform_conv
 
 
