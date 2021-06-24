@@ -9,8 +9,10 @@ MUSES is a large-scale video dataset, designed to spur researches on a new task 
 
 Refer to the [paper](https://arxiv.org/abs/2012.09434) and the [project page](http://songbai.site/muses/) for more information.
 
+The code largely borrows from [SSN](ssn) and [P-GCN](pgcn). Thanks for their great work!
+
 # Updates
-[2021.6.24] A combination of MUSES-Net and our latest work TadTR achieves 60.0% mAP, a new record on THUMOS14!
+[2021.6.24] A combination of MUSES-Net and our latest work TadTR achieves 60.0% mAP, a new record on THUMOS14!<br>
 [2021.6.19] Code and the annotation file of MUSES is released. Please find the annotation file on our [project page](http://songbai.site/muses/).
 
 # Contents
@@ -138,6 +140,8 @@ Please cite the following paper if you feel MUSES useful to your research
 # Related Projects
 - [TadTR](https://github.com/xlliu7/TadTR): Temporal action detectioon (localization) with Transformer.
 
+
+
 # Contact
 [[back to top](#MUSES)]
 
@@ -154,3 +158,4 @@ For questions and suggestions, file an issue or contact Xiaolong Liu at "liuxl a
 [emv]:https://github.com/zbwglory/MV-release
 [features_google]: https://drive.google.com/open?id=1C6829qlU_vfuiPdJSqHz3qSqqc0SDCr_
 [features_baidu]: https://pan.baidu.com/s/1Dqbcm5PKbK-8n0ZT9KzxGA
+[pgcn]: https://github.com/Alvin-Zeng/PGCN

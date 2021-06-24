@@ -13,7 +13,7 @@ import pdb
 
 
 parser = argparse.ArgumentParser(
-    description="PGCN Testing Tool")
+    description="MUSES Testing Tool")
 parser.add_argument('dataset', type=str, choices=['thumos14', 'muses'])
 parser.add_argument('weights', type=str)
 parser.add_argument('save_scores', type=str)

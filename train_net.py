@@ -32,7 +32,7 @@ torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 
 best_loss = 100
-cudnn.benchmark = True
+cudnn.benchmark = False
 pin_memory = True
 os.environ['CUDA_DEVICE_ORDER'] = "PCI_BUS_ID"
 # os.environ['CUDA_VISIBLE_DEVICES'] = "0"
@@ -40,7 +40,7 @@ os.environ['CUDA_DEVICE_ORDER'] = "PCI_BUS_ID"
 
 def main():
 
-    global args, best_loss, writer, adj_num, logger
+    global args, best_loss, writer
 
     configs = get_and_save_args(parser)
     parser.set_defaults(**configs)
@@ -58,7 +58,6 @@ def main():
     for p in model.parameters():
         cnt += p.data.numel()
     print(cnt)
-    # input('pause')
 
     """copy codes and creat dir for saving models and logs"""
     if not os.path.isdir(args.snapshot_pref):
@@ -103,81 +102,18 @@ def main():
             logging.info(
                 ("=> no checkpoint found at '{}'".format(args.resume)))
 
-    trainval_online_slice = dataset_configs.get('online_slice', False)
     """construct dataset"""
-    class_balanced_sampling = dataset_configs.get(
-        'class_balanced_sampling', False)
+
     train_dataset = VideoDataSet(dataset_configs,
                                  prop_file=dataset_configs['train_prop_file'],
-                                 prop_dict_path=dataset_configs['train_dict_path'],
                                  ft_path=dataset_configs['train_ft_path'],
                                  epoch_multiplier=dataset_configs['training_epoch_multiplier'],
-                                 test_mode=False, online_slice=trainval_online_slice, slice_len=dataset_configs.get('slice_len', 400))
+                                 test_mode=False)
     kwargs = {}
-
-    def mean(items):
-        return sum(items) / len(items)
-
-    if class_balanced_sampling:
-        per_cls_cnt = {}
-        per_vid_classes = []
-
-        for video in train_dataset.video_list:
-            video_id = video.id
-            labels = {x.label for x in video.gt}
-            per_vid_classes.append(list(labels))
-            for cls in labels:
-                if cls not in per_cls_cnt:
-                    per_cls_cnt[cls] = 0
-                per_cls_cnt[cls] += 1
-        # print('avg number of class in one video: {}'.format( sum([len(x) for x in per_vid_classes.values()]) / len(per_vid_classes)))  # 2.934
-
-        min_weight = min(1/v for v in per_cls_cnt.values())
-        per_cls_weight = {k: min(1/v, 10*min_weight)
-                          for k, v in per_cls_cnt.items()}
-        per_sample_weights = []
-        for x in per_vid_classes:
-            weights = [per_cls_weight[xi] for xi in x]
-            per_sample_weights.append(mean(weights))
-        sampler = torch.utils.data.sampler.WeightedRandomSampler(
-            per_sample_weights, len(per_sample_weights), replacement=True)
-        real_per_cls_weight = {}
-        for idx, x in enumerate(per_sample_weights):
-            for xi in per_vid_classes[idx]:
-                if xi not in real_per_cls_weight:
-                    real_per_cls_weight[xi] = 0
-                real_per_cls_weight[xi] += x
-        print(real_per_cls_weight)
-        pdb.set_trace()
-        kwargs['sampler'] = sampler
-        kwargs['shuffle'] = False
-        logging.info('Enable class balanced sampling')
-    else:
-        kwargs['shuffle'] = True
+    kwargs['shuffle'] = True
 
     loss_kwargs = {}
-    if args.loss_balance:
-        logging.info('manully computing weights for each class')
-        per_cls_cnt = {}
-
-        for video in train_dataset.video_list:
-            video_id = video.id
-            labels = {x.label for x in video.proposals}
-            for cls in labels:
-                if cls not in per_cls_cnt:
-                    per_cls_cnt[cls] = 0
-                per_cls_cnt[cls] += 1
-        # print('avg number of class in one video: {}'.format( sum([len(x) for x in per_vid_classes.values()]) / len(per_vid_classes)))  # 2.934
-
-        min_weight = min(1/v for v in per_cls_cnt.values())
-        per_cls_weight = {k: min(1/v, 10*min_weight)
-                          for k, v in per_cls_cnt.items()}
-        avg_weight = mean(per_cls_weight.values())
-        per_cls_weight = [per_cls_weight[i] /
-                          avg_weight for i in range(len(per_cls_weight))]
-        logging.info('per_class_weuight: {}'.format(per_cls_weight))
-        loss_kwargs['weight'] = torch.FloatTensor(per_cls_weight)
-
+    
     train_loader = torch.utils.data.DataLoader(
         train_dataset,
         batch_size=args.batch_size,
@@ -187,11 +123,10 @@ def main():
     val_loader = torch.utils.data.DataLoader(
         VideoDataSet(dataset_configs,
                      prop_file=dataset_configs['test_prop_file'],
-                     prop_dict_path=dataset_configs['val_dict_path'],
                      ft_path=dataset_configs['test_ft_path'],
                      epoch_multiplier=dataset_configs['testing_epoch_multiplier'],
                      reg_stats=train_loader.dataset.stats,
-                     test_mode=False, online_slice=trainval_online_slice, slice_len=dataset_configs.get('slice_len', 400)),
+                     test_mode=False),
         batch_size=args.batch_size, shuffle=False, drop_last=True,
         num_workers=args.workers, pin_memory=True)
     logging.info('Dataloaders constructed')
@@ -350,7 +285,7 @@ def train(train_loader, model, act_criterion, comp_criterion, regression_criteri
         # writer.add_scalar('data/lr', optimizer.param_groups[0]['lr'], epoch*len(train_loader)+i+1)
         if i % args.iter_size == 0 and i // args.iter_size % args.print_freq == 0:
             # logging.info('\n{}\n{}'.format(activity_out.argmax(1), activity_target))
-            logging.info('Epoch: [/{0}][{1}/{2}], lr: {lr:.5f}\t'
+            logging.info('Epoch: [{0}][{1}/{2}], lr: {lr:.5f}\t'
                          'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
                          'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
                          'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
@@ -439,8 +374,8 @@ def validate(val_loader, model, act_criterion, comp_criterion, regression_criter
         end = time.time()
 
         if i % args.iter_size == 0 and (i // args.iter_size) % args.print_freq == 0:
-            logging.info('\n{}\n{}'.format(
-                activity_out.argmax(1), activity_target))
+            # logging.info('\n{}\n{}'.format(
+            #     activity_out.argmax(1), activity_target))
             logging.info('Test: [{0}/{1}]\t'
                          'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
                          'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
