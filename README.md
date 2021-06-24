@@ -5,11 +5,12 @@ Multi-shot Temporal Event Localization: a Benchmark<br>
 CVPR 2021.
 
 
-MUSES is a large-scale video dataset, designed to spur researches on a new task called multi-shot temporal event localization. We present a baseline aproach that achieves SOTA peformance on MUSES. It also reports an mAP of 56.9% on THUMOS14 at IoU=0.5. 
+MUSES is a large-scale video dataset, designed to spur researches on a new task called multi-shot temporal event localization. We present a baseline aproach (denoted as MUSES-Net) that achieves SOTA peformance on MUSES. It also reports an mAP of 56.9% on THUMOS14 at IoU=0.5. 
 
 Refer to the [paper](https://arxiv.org/abs/2012.09434) and the [project page](http://songbai.site/muses/) for more information.
 
 # Updates
+[2021.6.24] A combination of MUSES-Net and our latest work TadTR achieves 60.0% mAP, a new record on THUMOS14!
 [2021.6.19] Code and the annotation file of MUSES is released. Please find the annotation file on our [project page](http://songbai.site/muses/).
 
 # Contents
