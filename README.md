@@ -1,4 +1,7 @@
 # MUSES
+
+[![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/multi-shot-temporal-event-localization-a/temporal-action-localization-on-thumos14)](https://paperswithcode.com/sota/temporal-action-localization-on-thumos14?p=multi-shot-temporal-event-localization-a)
+
 This repo holds the code and the models for MUSES, introduced in the paper:<br>
 Multi-shot Temporal Event Localization: a Benchmark<br>
 [Xiaolong Liu](https://github.com/xlliu7), [Yao Hu](https://scholar.google.com/citations?user=LIu7k7wAAAAJ), [Song Bai](http://songbai.site), Fei Ding, [Xiang Bai](http://122.205.5.5:8071/~xbai/), [Philip H.S. Torr](http://www.robots.ox.ac.uk/~phst/)<br>
@@ -9,11 +12,11 @@ MUSES is a large-scale video dataset, designed to spur researches on a new task 
 
 Refer to the [paper](https://arxiv.org/abs/2012.09434) and the [project page](http://songbai.site/muses/) for more information.
 
-The code largely borrows from [SSN](ssn) and [P-GCN](pgcn). Thanks for their great work!
+The code largely borrows from [SSN][ssn] and [P-GCN][pgcn]. Thanks for their great work!
 
 # Updates
 [2021.6.24] A combination of MUSES-Net and our latest work TadTR achieves 60.0% mAP, a new record on THUMOS14!<br>
-[2021.6.19] Code and the annotation file of MUSES is released. Please find the annotation file on our [project page](http://songbai.site/muses/).
+[2021.6.19] Code and the annotation file of MUSES are released. Please find the annotation file on our [project page](http://songbai.site/muses/).
 
 # Contents
 ----
