@@ -11,6 +11,7 @@ import random
 import os.path as osp
 import pdb
 
+# os.environ['CUDA_VISIBLE_DEVICES'] = '4'
 
 parser = argparse.ArgumentParser(
     description="MUSES Testing Tool")

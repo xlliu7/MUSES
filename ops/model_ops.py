@@ -236,7 +236,7 @@ class CompletenessLoss(torch.nn.Module):
         pos_cnt = pos_prob.size(0)
         neg_cnt = max(int(neg_prob.size()[0] * self.ohem_ratio), 1)
 
-
+        # OHEMHingeLoss compute the total loss, which should be divide by the total num to get the average loss
         return pos_ls / float(pos_cnt + neg_cnt) + neg_ls / float(pos_cnt + neg_cnt)
 
 

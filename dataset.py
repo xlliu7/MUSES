@@ -324,6 +324,9 @@ class VideoDataSet(torch.utils.data.Dataset):
         else:
             if self.ft_file_ext == '.npy':
                 ft_arr = np.load(ft_full_path)
+            elif self.ft_file_ext.endswith('.npz'):
+                ft_arr = np.load(ft_full_path)['feature']
+                ft_arr = ft_arr[0]
             else:
                 with open(ft_full_path, 'rb') as f:
                     ft_arr = pickle.load(f, encoding='bytes')
@@ -362,6 +365,9 @@ class VideoDataSet(torch.utils.data.Dataset):
         else:
             if self.ft_file_ext == '.npy':
                 ft_arr = np.load(ft_full_path)
+            elif self.ft_file_ext.endswith('.npz'):
+                ft_arr = np.load(ft_full_path)['feature']
+                ft_arr = ft_arr[0]
             else:
                 with open(ft_full_path, 'rb') as f:
                     ft_arr = pickle.load(f, encoding='bytes')

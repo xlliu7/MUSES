@@ -136,3 +136,13 @@ dmypy.json
 
 # Cython debug symbols
 cython_debug/
+
+# my custom
+data/thumos14/I3D_feature
+data/thumos14/I3D_*
+data/thumos14/*.tar
+data/*.tar
+outputs/*
+.vscode/
+reference_models/
+*.pc

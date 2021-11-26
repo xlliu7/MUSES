@@ -35,7 +35,7 @@ best_loss = 100
 cudnn.benchmark = False
 pin_memory = True
 os.environ['CUDA_DEVICE_ORDER'] = "PCI_BUS_ID"
-# os.environ['CUDA_VISIBLE_DEVICES'] = "0"
+# os.environ['CUDA_VISIBLE_DEVICES'] = "5"
 
 
 def main():
@@ -67,7 +67,7 @@ def main():
     logfile = os.path.join(args.snapshot_pref, date+'_train.log')
     get_logger(args, logfile)
     logging.info(' '.join(sys.argv))
-    logging.info('\ncreating folder: ' + args.snapshot_pref)
+    logging.info('creating folder: ' + args.snapshot_pref)
 
     if not args.evaluate:
         pass
@@ -76,10 +76,10 @@ def main():
         # recorder = Recorder(args.snapshot_pref, ["models", "__pycache__"])
         # recorder.writeopt(args)
 
-    logging.info('\nruntime args\n\n{}\n\nconfig\n\n{}'.format(
+    logging.info('\nruntime args\n{}\nconfig\n{}'.format(
         args, dataset_configs))
-    logging.info(str(model))
-    logging.info(str(cnt))
+    logging.info('\nmodel\n{}'.format(str(model)))
+    logging.info('numbers of model parameters: {}'.format(str(cnt)))
     if 'lr' in model_configs:
         args.lr = model_configs['lr']
         logging.info('Using learning rate {}'.format(args.lr))
@@ -244,14 +244,17 @@ def train(train_loader, model, act_criterion, comp_criterion, regression_criteri
         try:
             fg_acc = accuracy(
                 activity_out[fg_indexer, :], activity_target[fg_indexer])
-            fg_accuracies.update(fg_acc[0].item(), len(fg_indexer))
+            fg_accuracies.update(fg_acc[0].item(), len(fg_indexer))     # I think it should be len(fg_indexer.sum())
 
             bg_acc = accuracy(
                 activity_out[bg_indexer, :], activity_target[bg_indexer])
-            bg_accuracies.update(bg_acc[0].item(), len(bg_indexer))
+            bg_accuracies.update(bg_acc[0].item(), len(bg_indexer))     # I think it should be len(bg_indexer.sum())
         except:
             # print('warning: failed to compute fg/bg acc')
             pass
+        # the loss is already the average, if want to use the gradient accumulation 
+        # to enlarge the batch_size, the loss should divide by args.iter_size
+        # loss = loss / args.iter_size
         loss.backward()
 
         if (i + 1) % args.iter_size == 0:
@@ -452,7 +455,7 @@ def accuracy(output, target, topk=(1,)):
     batch_size = target.size(0)
 
     _, pred = output.topk(maxk, 1, True, True)
-    pred = pred.t()
+    pred = pred.t()     # transposes dimensions 0 and 1
     correct = pred.eq(target.view(1, -1).expand_as(pred))
 
     res = []
