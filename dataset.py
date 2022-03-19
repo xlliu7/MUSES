@@ -139,16 +139,21 @@ class VideoRecord:
 
 class VideoDataSet(torch.utils.data.Dataset):
     def __init__(self, dataset_configs, prop_file, ft_path, exclude_empty=True,
-                 epoch_multiplier=1, test_mode=False, gt_as_fg=True, reg_stats=None):
-        
+                 epoch_multiplier=1, test_mode=False, gt_as_fg=True, reg_stats=None, crop_windows=False, window_size=None):
+        '''
+        crop_windows: crop windows from the feature sequence to make sub-sequences with length=`window_size`
+        '''
         self.ft_path = ft_path
         self.prop_file = prop_file
-        self.ft_loader = dataset_configs.get('ft_loader', None)
 
         self.exclude_empty = exclude_empty
         self.epoch_multiplier = epoch_multiplier
         self.gt_as_fg = gt_as_fg
         self.test_mode = test_mode
+        self.crop_windows = crop_windows
+        self.window_size = window_size
+        if self.crop_windows:
+            assert self.window_size is not None
 
         self.fg_ratio = dataset_configs['fg_ratio']
         self.incomplete_ratio = dataset_configs['incomplete_ratio']
@@ -257,7 +262,7 @@ class VideoDataSet(torch.utils.data.Dataset):
         valid_starting = max(1, start_frame - int(duration * self.starting_ratio))
         valid_ending = min(frame_cnt, end_frame + int(duration * self.ending_ratio))
 
-        # get starting
+        # get starting and ending coordinates in the unit of frame
         act_s_e = (start_frame, end_frame)
         comp_s_e = (valid_starting, valid_ending)
 
@@ -317,8 +322,15 @@ class VideoDataSet(torch.utils.data.Dataset):
         #load prop fts
  
         video_id = video.id.split('/')[-1]
+        if self.crop_windows:
+            pos = video_id.find('_window_')
+            assert pos >= 0
+            orig_video_id = video_id[:pos]
+            win_start_end = [int(x) for x in video_id[pos + len('_window_'):].split('_')]
+        else:
+            orig_video_id = video_id
 
-        ft_full_path = osp.join(self.ft_path, video_id + self.ft_file_ext)
+        ft_full_path = osp.join(self.ft_path, orig_video_id + self.ft_file_ext)
         if self.ft_file_ext == '':
             ft_tensor = torch.load(ft_full_path).float()
         else:
@@ -328,8 +340,18 @@ class VideoDataSet(torch.utils.data.Dataset):
                 with open(ft_full_path, 'rb') as f:
                     ft_arr = pickle.load(f, encoding='bytes')
             ft_tensor = torch.from_numpy(ft_arr)
-                
-        slice_tensor = ft_tensor.transpose(1, 0)
+        
+        if self.crop_windows:
+            slice_tensor = ft_tensor[win_start_end[0]:win_start_end[1], :]
+            real_len = len(slice_tensor)
+            if real_len < self.window_size:
+                padded_ft = torch.zeros([self.window_size-real_len, ft_tensor.shape[1]], dtype=slice_tensor.dtype)
+                slice_tensor = torch.cat((slice_tensor, padded_ft), 0)
+            elif real_len > self.window_size:
+                slice_tensor = slice_tensor[:self.window_size,:]
+        else:
+            slice_tensor = ft_tensor
+        slice_tensor = slice_tensor.transpose(1, 0)  # (T, C) ==> (C, T)
     
         return slice_tensor, np.array(out_prop_ind), out_prop_type, out_prop_labels, out_prop_reg_targets, index
 
@@ -338,11 +360,8 @@ class VideoDataSet(torch.utils.data.Dataset):
         targets = []
         for video in self.video_list:
             fg = video.get_fg(self.fg_iou_thresh, False)
-            # print(len(fg))
-            # always zero?
             for p in fg:
                 targets.append(list(p.regression_targets))
-        # targrts might be empty
         self.stats = np.array((np.mean(targets, axis=0), np.std(targets, axis=0)))
 
     def get_test_data(self, video):

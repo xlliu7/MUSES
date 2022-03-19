@@ -2,6 +2,8 @@ import argparse
 import sys
 import time
 from multiprocessing import Pool
+import pickle
+
 
 import numpy as np
 import pandas as pd
@@ -11,15 +13,11 @@ from dataset import VideoDataSet
 from ops.utils import temporal_nms
 
 sys.path.append('./anet_toolkit/Evaluation')
-import os
-import pdb
-import pickle
+
 
 from anet_toolkit.Evaluation.eval_detection import \
     compute_average_precision_detection
-
 from ops.utils import get_configs, softmax
-
 
 # options
 parser = argparse.ArgumentParser(
@@ -32,7 +30,7 @@ parser.add_argument('-j', '--ap_workers', type=int, default=16)
 parser.add_argument('--top_k', type=int, default=None)
 parser.add_argument('--cls_scores', type=str, nargs='+')
 parser.add_argument('--reg_scores', type=str, default=None)
-parser.add_argument('--cls_top_k', type=int, default=1)
+# parser.add_argument('--cls_top_k', type=int, default=1)
 parser.add_argument('--cfg', default='data/dataset_cfg.yml')
 parser.add_argument('--score_weights', type=float, default=None, nargs='+')
 parser.add_argument('--min_length', type=float, default=None, help='minimum duration of proposals in second')
@@ -103,10 +101,7 @@ dataset = VideoDataSet(dataset_configs,
                     prop_file=prop_file,
                     ft_path=dataset_configs['train_ft_path'],
                     test_mode=True)
-from functools import reduce
 
-gt_lens = np.array(reduce(lambda x,y: x+y, [[(x.end_frame-x.start_frame)/6 for x in v.gt] for v in dataset.video_list]))
-# pdb.set_trace()
 dataset_detections = [dict() for i in range(num_class)]
 
 
@@ -180,7 +175,6 @@ def gen_detection_results(video_id, score_tp):
         combined_scores = combined_scores * np.exp(score_tp[2])
     keep_idx = np.argsort(combined_scores.ravel())[-top_k:]
 
-    # pdb.set_trace()
     delete_short = args.min_length is not None
     if delete_short:
         print('delete short proposals')
@@ -189,8 +183,6 @@ def gen_detection_results(video_id, score_tp):
         non_short_prop_idx = np.where(prop_duration <= args.min_length)[0]
         keep_idx = [x for x in keep_idx if x // num_class in non_short_prop_idx]
     
-    # keep_prop_num = len({x//num_class for x in keep_idx})
-
     for k in keep_idx:
         cls = k % num_class
         prop_idx = k // num_class
@@ -275,8 +267,7 @@ all_gt = pd.DataFrame(all_gt, columns=["video-id", "cls","t-start", "t-end"])
 gt_by_cls = []
 for cls in range(num_class):
     gt_by_cls.append(all_gt[all_gt.cls == cls].reset_index(drop=True).drop('cls', 1))
-    print(cls, len(gt_by_cls[cls]))
-# pdb.set_trace()
+    # print(cls, len(gt_by_cls[cls]))
 
 pickle.dump(gt_by_cls, open('gt_dump.pc', 'wb'), pickle.HIGHEST_PROTOCOL)
 pickle.dump(plain_detections, open('pred_dump.pc', 'wb'), pickle.HIGHEST_PROTOCOL)
@@ -286,10 +277,10 @@ if args.one_iou:
     iou_range = [0.5]
 else:
     if args.dataset == 'thumos14':
-        iou_range = np.arange(0.1, 1.0, 0.1)
-    elif args.dataset == 'muses':
+        #    iou_range = np.arange(0.1, 1.0, 0.1)
         iou_range = [0.3, 0.4, 0.5, 0.6, 0.7]
-    
+    elif args.dataset == 'muses':
+        iou_range = [0.3, 0.4, 0.5, 0.6, 0.7] 
     else:
         iou_range = np.arange(0.5, 1.0, 0.05)
         # raise ValueError("unknown dataset {}".format(args.dataset))
@@ -335,12 +326,11 @@ table = AsciiTable(display_data, display_title)
 table.justify_columns[-1] = 'right'
 table.inner_footing_row_border = True
 print(table.table)
-# first_line = '\t'.join(['iou'], ['{:.02f}'])
 
 print('Per-class average AP over all iou thresholds')
 
 for i,x in enumerate(per_cls_map):
     print('%.4f' % x, end='\t')
-    
-print(time.strftime('%Y-%m-%d %H:%M:%S') + ' Done')
+
+print('\n' + time.strftime('%Y-%m-%d %H:%M:%S') + ' Done')
 

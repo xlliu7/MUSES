@@ -96,7 +96,14 @@ if __name__ == '__main__':
     checkpoint = torch.load(args.weights)
     # pdb.set_trace()
     print("model epoch {} loss: {}".format(checkpoint['epoch'], checkpoint['best_loss']))
-    base_dict = {'.'.join(k.split('.')[1:]): v for k, v in list(checkpoint['state_dict'].items())}
+    
+    def remove_prefix(string, prefix='module.'):
+        if string.startswith(prefix):
+            return string[len(prefix):]
+        else:
+            return string
+
+    base_dict = {remove_prefix(k): v for k, v in list(checkpoint['state_dict'].items())}
 
     stats = checkpoint['reg_stats'].numpy()
 

@@ -9,12 +9,8 @@ import time
 
 import numpy as np
 import torch
-import torch.backends.cudnn as cudnn
-import torch.nn.parallel
 import torch.optim
 from opts import parser
-# import torchvision
-# from tensorboardX import SummaryWriter
 from torch.nn.utils import clip_grad_norm
 
 from dataset import VideoDataSet
@@ -28,11 +24,11 @@ random.seed(SEED)
 torch.manual_seed(SEED)
 torch.cuda.manual_seed(SEED)
 np.random.seed(SEED)
+# set deterministic to False if faster speed is desired
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 
 best_loss = 100
-cudnn.benchmark = False
 pin_memory = True
 os.environ['CUDA_DEVICE_ORDER'] = "PCI_BUS_ID"
 # os.environ['CUDA_VISIBLE_DEVICES'] = "0"
@@ -40,7 +36,7 @@ os.environ['CUDA_DEVICE_ORDER'] = "PCI_BUS_ID"
 
 def main():
 
-    global args, best_loss, writer
+    global args, best_loss
 
     configs = get_and_save_args(parser)
     parser.set_defaults(**configs)
@@ -69,13 +65,6 @@ def main():
     logging.info(' '.join(sys.argv))
     logging.info('\ncreating folder: ' + args.snapshot_pref)
 
-    if not args.evaluate:
-        pass
-        # writer = SummaryWriter(args.snapshot_pref)
-        # make a copy of the entire project folder, which can cost huge space
-        # recorder = Recorder(args.snapshot_pref, ["models", "__pycache__"])
-        # recorder.writeopt(args)
-
     logging.info('\nruntime args\n\n{}\n\nconfig\n\n{}'.format(
         args, dataset_configs))
     logging.info(str(model))
@@ -87,7 +76,7 @@ def main():
     """construct model"""
 
     policies = model.get_optim_policies()
-    model = torch.nn.DataParallel(model, device_ids=args.gpus).cuda()
+    model.cuda()
 
     if args.resume:
         if os.path.isfile(args.resume):
@@ -108,11 +97,11 @@ def main():
                                  prop_file=dataset_configs['train_prop_file'],
                                  ft_path=dataset_configs['train_ft_path'],
                                  epoch_multiplier=dataset_configs['training_epoch_multiplier'],
-                                 test_mode=False)
+                                 test_mode=False,
+                                 crop_windows=dataset_configs.get('crop_windows', False),
+                                 window_size=dataset_configs.get('window_size', None))
     kwargs = {}
     kwargs['shuffle'] = True
-
-    loss_kwargs = {}
     
     train_loader = torch.utils.data.DataLoader(
         train_dataset,
@@ -127,18 +116,14 @@ def main():
                      epoch_multiplier=dataset_configs['testing_epoch_multiplier'],
                      reg_stats=train_loader.dataset.stats,
                      test_mode=False),
-        batch_size=args.batch_size, shuffle=False, drop_last=True,
+        batch_size=1, shuffle=False, drop_last=True,
         num_workers=args.workers, pin_memory=True)
     logging.info('Dataloaders constructed')
 
     """loss and optimizer"""
-    activity_criterion = torch.nn.CrossEntropyLoss(**loss_kwargs).cuda()
+    activity_criterion = torch.nn.CrossEntropyLoss().cuda()
     completeness_criterion = CompletenessLoss().cuda()
     regression_criterion = ClassWiseRegressionLoss().cuda()
-
-    # for group in policies:
-    #     logging.info(('group: {} has {} params, lr_mult: {}, decay_mult: {}'.format(
-    #         group['name'], len(group['params']), group['lr_mult'], group['decay_mult'])))
 
     optimizer = torch.optim.SGD(policies,
                                 args.lr,
@@ -173,14 +158,11 @@ def main():
             loss = validate(val_loader, model, activity_criterion, completeness_criterion,
                             regression_criterion, (epoch + 1) * len(train_loader), epoch)
             # remember best validation loss and save checkpoint
-            # loss = np.exp(-epoch/100)
             is_best = loss < best_loss
             best_loss = min(loss, best_loss)
             ckpt['best_loss'] = best_loss
             save_checkpoint(ckpt, is_best, epoch,
                             filename='checkpoint.pth.tar')
-
-    # writer.close()
 
 
 def get_item(input):
@@ -211,8 +193,8 @@ def train(train_loader, model, act_criterion, comp_criterion, regression_criteri
     comp_group_size = train_loader.dataset.fg_per_video + \
         train_loader.dataset.incomplete_per_video
     for i, (video_fts, rois, prop_type, prop_labels, prop_reg_targets, video_idx) in enumerate(train_loader):
-        # print('batch %d' % i)
         # measure data loading time
+        video_fts, prop_type, prop_labels, prop_reg_targets = [x.cuda() for x in (video_fts, prop_type, prop_labels, prop_reg_targets)]
         data_time.update(time.time() - end)
         batch_size = video_fts.size(0)
 
@@ -276,15 +258,7 @@ def train(train_loader, model, act_criterion, comp_criterion, regression_criteri
         batch_time.update(time.time() - end)
         end = time.time()
 
-        # writer.add_scalar('data/loss', losses.val, epoch*len(train_loader)+i+1)
-        # writer.add_scalar('data/Reg_loss', reg_losses.val, epoch*len(train_loader)+i+1)
-        # writer.add_scalar('data/Act_loss', act_losses.val, epoch*len(train_loader)+i+1)
-        # writer.add_scalar('data/comp_loss', comp_losses.val, epoch*len(train_loader)+i+1)
-
-        # writer.add_scalar('data/epoch', epoch, epoch*len(train_loader)+i+1)
-        # writer.add_scalar('data/lr', optimizer.param_groups[0]['lr'], epoch*len(train_loader)+i+1)
         if i % args.iter_size == 0 and i // args.iter_size % args.print_freq == 0:
-            # logging.info('\n{}\n{}'.format(activity_out.argmax(1), activity_target))
             logging.info('Epoch: [{0}][{1}/{2}], lr: {lr:.5f}\t'
                          'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
                          'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
@@ -303,6 +277,7 @@ def train(train_loader, model, act_criterion, comp_criterion, regression_criteri
                          )
 
 
+@torch.no_grad()
 def validate(val_loader, model, act_criterion, comp_criterion, regression_criterion, iter, epoch):
     batch_time = AverageMeter()
     losses = AverageMeter()
@@ -325,7 +300,7 @@ def validate(val_loader, model, act_criterion, comp_criterion, regression_criter
     for i, (video_fts, rois, prop_type, prop_labels, prop_reg_targets, video_idx) in enumerate(val_loader):
         # measure data loading time
         batch_size = video_fts.size(0)
-
+        video_fts, prop_type, prop_labels, prop_reg_targets = [x.cuda() for x in (video_fts, prop_type, prop_labels, prop_reg_targets)]
         activity_out, activity_target, activity_prop_type, \
             completeness_out, completeness_target, \
             regression_out, regression_labels, regression_target = model(video_fts, rois, prop_labels,
@@ -374,15 +349,13 @@ def validate(val_loader, model, act_criterion, comp_criterion, regression_criter
         end = time.time()
 
         if i % args.iter_size == 0 and (i // args.iter_size) % args.print_freq == 0:
-            # logging.info('\n{}\n{}'.format(
-            #     activity_out.argmax(1), activity_target))
-            logging.info('Test: [{0}/{1}]\t'
+            logging.info('Test: Epoch {0} [{1}/{2}]\t'
                          'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
                          'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
                          'Act. Loss {act_loss.val:.3f} ({act_loss.avg:.3f})\t'
                          'Comp. Loss {comp_loss.val:.3f} ({comp_loss.avg:.3f})\t'
                          'Act. Accuracy {act_acc.val:.02f} ({act_acc.avg:.2f}) FG {fg_acc.val:.02f} BG {bg_acc.val:.02f}'.format(
-                             i, len(val_loader), batch_time=batch_time, loss=losses,
+                             epoch, i, len(val_loader), batch_time=batch_time, loss=losses,
                              act_loss=act_losses, comp_loss=comp_losses, act_acc=act_accuracies,
                              fg_acc=fg_accuracies, bg_acc=bg_accuracies) +
                          '\tReg. Loss {reg_loss.val:.3f} ({reg_loss.avg:.3f})'.format(
@@ -396,14 +369,6 @@ def validate(val_loader, model, act_criterion, comp_criterion, regression_criter
                          fg_acc=fg_accuracies, bg_acc=bg_accuracies)
                  + '\t Regression Loss {reg_loss.avg:.3f}'.format(reg_loss=reg_losses))
 
-    # if iter > 0:
-    #     writer.add_scalar('val/loss', losses.val, iter)
-    #     writer.add_scalar('val/Reg_loss', reg_losses.val, iter)
-    #     writer.add_scalar('val/Act_loss', act_losses.val, iter)
-    #     writer.add_scalar('val/comp_loss', comp_losses.val, iter)
-    #     writer.add_scalar('val/act_acc', act_accuracies.val, iter)
-    #     writer.add_scalar('val/fg_acc', fg_accuracies.val, iter)
-    #     writer.add_scalar('val/bg_acc', bg_accuracies.val, iter)
     return losses.avg
 
 

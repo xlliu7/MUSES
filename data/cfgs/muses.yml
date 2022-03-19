@@ -1,0 +1,45 @@
+muses:
+  dataset_configs:
+
+    train_ft_path: data/muses/muses_i3d_features/
+    test_ft_path: data/muses/muses_i3d_features/
+
+    # We use a sliding window strategy to crop windows of fix-length for training. 
+    # The window length is 400 snippets and the stride between adjacent windows is 400 snippets. # We slide the windows in both the forward and the backward directions.
+    train_prop_file: data/muses/muses_train_proposal_list_crop_winsize400.txt
+    test_prop_file: data/muses/muses_test_proposal_list.txt
+    num_class: 25
+    ft_file_ext: '.npy'
+    roi_pool_size: 4
+    crop_windows: true
+    window_size: 400
+
+    training_epoch_multiplier: 1
+    testing_epoch_multiplier: 1
+
+    fg_iou_thresh: 0.7
+    bg_iou_thresh: 0.01
+    incomplete_iou_thresh: 0.3
+    bg_coverage_thresh: 0.02
+    incomplete_overlap_thresh: 0.01
+    prop_per_video: 8
+    fg_ratio: 1
+    bg_ratio: 1
+    incomplete_ratio: 6
+    starting_ratio: 0.5
+    ending_ratio: 0.5
+
+  model_configs:
+    num_class: 25
+    feat_dim: 1024
+    dropout: 0.8
+    act_net_dims: [2048, 384]
+    comp_net_dims: [4096, 384]
+    batch_size: 32
+    iter_size: 1
+
+
+  evaluation:
+    top_k: 500
+    nms_threshold: 0.4
+
